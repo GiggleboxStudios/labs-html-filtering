@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>HTML Tag attribute parser</title>
+
+  <link rel="stylesheet" href="forkme-ribbon.css">
+  <style type="text/css">
+    * {
+      -webkit-box-sizing: border-box;
+      -moz-box-sizing: border-box;
+      box-sizing: border-box;
+    }
+    html, body {
+      font-family: sans-serif;
+    }
+    body {
+      overflow: scroll;
+      margin: 0;
+      padding: 1rem;
+    }
+    .container {
+      position: relative;
+      margin: 0 auto;
+      max-width: 45rem;
+    }
+    #content-container {
+      display: block;
+      max-width: 100%;
+      width: 100%;
+      font-family: monospace;
+    }
+    .testing pre {
+      display: block;
+      overflow-x: auto;
+      width: 100%;
+      border: 1px solid #ccc;
+    }
+    .testing pre code {
+      display: block;
+    }
+    .demo {
+      display: block;
+      overflow-x: auto;
+      width: 100%;
+      border: 1px solid #ccc;
+    }
+    .demo-text span {
+      font-size: 60%;
+      font-weight: normal;
+      color: #aaa;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="github-fork-ribbon-wrapper right">
+    <div class="github-fork-ribbon">
+      <a href="https://github.com/simonwhitaker/github-fork-ribbon-css">Fork me on GitHub</a>
+    </div>
+  </div>
+
+  <div class="container">
+    <h1>Simple user submitted markup filter</h1>
+
+    <h2>User Submitted Markup</h2>
+    <textarea name="" id="content-container" cols="100" rows="10" data-container="input">
+<a href='https://testing.com/im-a-proper-url' title="i'm a sassy hamster that i'm starting to miss...">Testing</a>
+<span id='waht-a-eadl' mz-data="what's the deal with pancakes?">There's a snake in my boot!</span>
+<div class="waht-a-eadl" mz-data="what's the deal with pancakes?">There's a "snake in my" boot!</div>
+    </textarea>
+
+    <button class="b" data-trigger="filter-input">Filter Content</button>
+
+    <div class="testing">
+      <h2>Filtered Markup</h2>
+      <pre><code data-container="output"></code></pre>
+      <h2 class="demo-text">Demo <span data-trigger="update-time"></span></h2>
+      <div class="demo" data-container="demo"></div>
+    </div>
+  </div>
+
+  <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+  <script>
+    /* jshint laxbreak:true, laxcomma:true */
+    /* global jQuery */
+
+    (function($) {
+      var content   = $('[data-container="input"]').val()
+        , output    = $('[data-container="output"]')
+        , demo      = $('[data-container="demo"]')
+        , timeStamp = $('[data-trigger="update-time"]')
+
+        , regex = {
+            it:   /(<[\S\s]+?>)/gi            // gets contents inside of <tag> elements
+          , dq:   /("[\S\s]+?")/gi            // gets contents inside of double quotes
+          , rsq:  /'/g                        // gets all single quotes
+          , punctuation: /([\?\+\$\%\:])/gi   // gets any punctuation that's used in regexp's
+          }
+        ;
+
+      /**
+       * Parses tag attribute contents "within double quotes" and escapes certain values with their HTML entity equivalent
+       * @param  string   argContent  HTML content submitted by user to be persisted in DB
+       * @return string               The filtered contents with escaped <tag> attributes
+       */
+      function parseDoubleQuotes(argContent) {
+
+        var tempContent = argContent;
+
+        // inside each <tag> in user submitted content
+        $.each(tempContent.match(regex.it), function(itIndex, itValue) {
+
+          // if the tag contains quoted attributes
+          if (itValue.match(regex.dq)) {
+            $.each(itValue.match(regex.dq), function(dqIndex, dqValue) {
+
+              var dqFixed = dqValue
+                .replace(/'/g, "&#8217;")    // replace single quotes with HTML entitiy equivalent
+                // theoretically add any further escaping here...
+                ;
+
+              // escape punctuation that conflicts with regex modifiers
+              dqValue = dqValue.replace(regex.punctuation, '\\$1');
+
+              // replace this instance of the tags contents with the filtered version
+              tempContent = tempContent.replace(new RegExp(dqValue, 'gi'), dqFixed);
+            });
+          }
+        });
+
+        return tempContent;
+      }
+
+
+
+      /**
+       * Parses <tag>s that have attribute values wrapped with 'single quotes' and turns them to "double quotes"
+       * @param  string   argContent  HTML content submitted by user to be persisted in DB
+       * @return string               The filtered contents with <tag> attribute values wrapped in "double quotes"
+       */
+      function parseSingleQuotes(argContent) {
+
+        var tempContent = argContent;
+
+        // inside each <tag> in user submitted content
+        $.each(tempContent.match(regex.it), function(itIndex, itValue) {
+
+          // replace all instances of unescaped single quotes inside of <tag> declarations
+          var itFixed = itValue
+            .replace(/'/g, '"')   // eg: single quoted <tag> attributes='non-sense'...
+            ;
+
+          // escape punctuation that conflicts with regex modifiers
+          itValue = itValue.replace(regex.punctuation, '\\$1');
+
+          tempContent = tempContent.replace(new RegExp(itValue, 'gi'), itFixed);
+        });
+
+        return tempContent;
+      }
+
+
+      // Init the content filter
+      filterContents(content);
+
+
+      // dummy event that triggers on the field input button
+      $('[data-trigger="filter-input"]').on('click', function() {
+        content = $('[data-container="input"]').val()
+        filterContents(content);
+      });
+
+
+      function HTMLdecode(argContent) {
+        return String(argContent)
+          .replace(/&/g, '&amp;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          ;
+      }
+
+
+      function logit(argContent) {
+        output.html(HTMLdecode(argContent));
+        demo.html(argContent);
+      }
+
+
+      function filterContents(argContent) {
+        var start = Date.now();
+
+        argContent = parseDoubleQuotes(argContent);
+        argContent = parseSingleQuotes(argContent);
+
+        logit(argContent);
+
+        var delta = (Date.now() - start)/1000;
+        timeStamp.text(delta + ' seconds');
+      }
+
+    })(jQuery);
+  </script>
+</body>
+</html>
