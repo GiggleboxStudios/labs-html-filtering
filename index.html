@@ -19,6 +19,11 @@
       margin: 0;
       padding: 1rem;
     }
+    blockquote {
+      padding: 0.5rem 1rem;
+      margin: 0;
+      border-left: 8px solid #e3e3e3;
+    }
     .container {
       position: relative;
       margin: 0 auto;
@@ -56,12 +61,14 @@
 
   <div class="github-fork-ribbon-wrapper right">
     <div class="github-fork-ribbon">
-      <a href="https://github.com/simonwhitaker/github-fork-ribbon-css">Fork me on GitHub</a>
+      <a href="https://github.com/giggleboxstudios/labs-html-filtering">Fork me on GitHub</a>
     </div>
   </div>
 
   <div class="container">
     <h1>Simple user submitted markup filter</h1>
+
+    <blockquote>NOTE: Use responsibly! This only normalizes certain features of the markup submitted by the client prior to being passed to a server side layer. Always exercise caution when passing user submitted content to your server.</blockquote>
 
     <h2>User Submitted Markup</h2>
     <textarea name="" id="content-container" cols="100" rows="10" data-container="input">
